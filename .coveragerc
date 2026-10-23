@@ -1,0 +1,9 @@
+[run]
+omit =
+    */migrations/*
+    manage.py
+    loja/settings.py
+    loja/wsgi.py
+    loja/asgi.py
+    */tests.py
+    */tests/*
