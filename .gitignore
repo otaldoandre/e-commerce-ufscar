@@ -1,0 +1,24 @@
+# Ambiente virtual e caches do Python
+venv/
+.venv/
+venv1/
+__pycache__/
+*.pyc
+
+# Segredos e configuração local (NUNCA versionar)
+.env
+
+# Arquivos gerados
+db.sqlite3
+media/*
+media/produtos/*
+!media/produtos/
+!media/produtos/produto.png
+staticfiles/
+.coverage
+htmlcov/
+
+# Editores e sistema
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,10 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Categorias{% endblock %}
+{% block content %}
+<h1>Categorias</h1><p><a class="button" href="{% url 'catalogo:categoria_criar' %}">Nova categoria</a></p>
+<table><thead><tr><th>Nome</th><th>Descrição</th><th>Produtos</th><th>Ações</th></tr></thead><tbody>
+{% for categoria in categorias %}<tr><td>{{ categoria.nome }}</td><td>{{ categoria.descricao|default:'-' }}</td><td>{{ categoria.produtos.count }}</td>
+<td><a class="button" href="{% url 'catalogo:categoria_editar' categoria.pk %}">Editar</a></td></tr>
+{% empty %}<tr><td colspan="4">Nenhuma categoria cadastrada.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

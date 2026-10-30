@@ -1,0 +1,10 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Remover produto{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Remover produto</h1>
+    <p>Tem certeza que deseja remover <strong>{{ object.nome }}</strong>?</p>
+    <form method="post">{% csrf_token %}<button class="button danger" type="submit">Confirmar remoção</button>
+        <a class="button secondary" href="{% url 'catalogo:produto_lista' %}">Cancelar</a></form>
+</div>
+{% endblock %}

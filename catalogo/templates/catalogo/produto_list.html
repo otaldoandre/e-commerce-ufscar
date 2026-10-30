@@ -1,0 +1,37 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Produtos{% endblock %}
+{% block content %}
+<h1>Catálogo de produtos</h1>
+<form method="get" class="filters">
+    <div class="field"><label for="q">Buscar</label><input id="q" name="q" value="{{ filtros.q|default:'' }}" placeholder="Nome ou descrição"></div>
+    <div class="field"><label for="categoria">Categoria</label><select id="categoria" name="categoria">
+        <option value="">Todas</option>
+        {% for categoria in categorias %}<option value="{{ categoria.pk }}" {% if filtros.categoria == categoria.pk|stringformat:'s' %}selected{% endif %}>{{ categoria.nome }}</option>{% endfor %}
+    </select></div>
+    <div class="field"><label for="estoque">Estoque</label><select id="estoque" name="estoque">
+        <option value="">Todos</option>
+        <option value="disponivel" {% if filtros.estoque == 'disponivel' %}selected{% endif %}>Disponível</option>
+        <option value="esgotado" {% if filtros.estoque == 'esgotado' %}selected{% endif %}>Esgotado</option>
+    </select></div>
+    <div class="field"><label for="preco_maximo">Preço máximo</label><input id="preco_maximo" name="preco_maximo" type="number" min="0" step="0.01" value="{{ filtros.preco_maximo|default:'' }}"></div>
+    <button type="submit">Filtrar</button>
+    <a class="button secondary" href="{% url 'catalogo:produto_lista' %}">Limpar</a>
+</form>
+{% if produtos %}
+<table>
+    <thead>    <tr><th>Imagem</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Ações</th></tr></thead>
+    <tbody>{% for produto in produtos %}
+        <tr>
+            <td>{% if produto.imagem %}<img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" width="80" height="80" style="object-fit: cover;">{% else %}Sem imagem{% endif %}</td>
+            <td><strong>{{ produto.nome }}</strong><br>{{ produto.descricao|truncatewords:12 }}</td>
+            <td>{{ produto.categoria.nome }}</td>
+            <td>R$ {{ produto.preco|floatformat:2 }}</td>
+            <td>{{ produto.estoque }}{% if not produto.ativo %} (inativo){% endif %}</td>
+            <td><a class="button" href="{% url 'catalogo:produto_editar' produto.pk %}">Editar</a>
+                <a class="button danger" href="{% url 'catalogo:produto_remover' produto.pk %}">Remover</a></td>
+        </tr>
+    {% endfor %}</tbody>
+</table>
+{% else %}<div class="empty">Nenhum produto encontrado.</div>{% endif %}
+{% if is_paginated %}<p>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>{% endif %}
+{% endblock %}

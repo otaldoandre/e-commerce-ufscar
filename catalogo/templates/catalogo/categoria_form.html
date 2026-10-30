@@ -1,0 +1,7 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}{% if object %}Editar categoria{% else %}Nova categoria{% endif %}{% endblock %}
+{% block content %}
+<div class="form-card"><h1>{% if object %}Editar categoria{% else %}Cadastrar categoria{% endif %}</h1>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Salvar</button>
+<a class="button secondary" href="{% url 'catalogo:categoria_lista' %}">Cancelar</a></form></div>
+{% endblock %}
