@@ -25,6 +25,7 @@
         .form-card { max-width: 650px; background: white; padding: 1.5rem; }
         .form-row { margin-bottom: 1rem; }
         .errorlist { color: #b42318; }
+        .warning { color: #9a3412; background: #ffedd5; padding: .75rem; }
     </style>
 </head>
 <body>
@@ -33,6 +34,7 @@
             <a href="{% url 'catalogo:produto_lista' %}">Produtos</a>
             <a href="{% url 'catalogo:categoria_lista' %}">Categorias</a>
             <a href="{% url 'catalogo:produto_criar' %}">Novo produto</a>
+            <a href="{% url 'carrinho:detalhe' %}">Carrinho ({{ carrinho_quantidade }})</a>
         </nav>
     </header>
     <main>

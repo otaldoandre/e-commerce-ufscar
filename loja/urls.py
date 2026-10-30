@@ -22,6 +22,7 @@ from django.urls import include, path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('catalogo.urls')),
+    path('carrinho/', include('carrinho.urls')),
 ]
 
 if settings.DEBUG:

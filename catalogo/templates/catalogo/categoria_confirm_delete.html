@@ -1,0 +1,17 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Remover categoria{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Remover categoria</h1>
+    <p>Tem certeza que deseja remover <strong>{{ object.nome }}</strong>?</p>
+    {% if object.produtos.exists %}
+        <p class="warning">Esta categoria possui produtos e não pode ser removida. Reclassifique ou remova os produtos primeiro.</p>
+        <a class="button secondary" href="{% url 'catalogo:categoria_lista' %}">Voltar</a>
+    {% else %}
+        <form method="post">{% csrf_token %}
+            <button class="button danger" type="submit">Confirmar remoção</button>
+            <a class="button secondary" href="{% url 'catalogo:categoria_lista' %}">Cancelar</a>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

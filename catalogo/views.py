@@ -1,7 +1,9 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.db.models.deletion import ProtectedError
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -104,3 +106,21 @@ class CategoriaUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Categoria atualizada com sucesso.')
         return super().form_valid(form)
+
+
+class CategoriaDeleteView(DeleteView):
+    model = Categoria
+    template_name = 'catalogo/categoria_confirm_delete.html'
+    success_url = reverse_lazy('catalogo:categoria_lista')
+
+    def form_valid(self, form):
+        try:
+            response = super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                'Não é possível remover uma categoria que possui produtos.',
+            )
+            return redirect(self.success_url)
+        messages.success(self.request, 'Categoria removida com sucesso.')
+        return response
