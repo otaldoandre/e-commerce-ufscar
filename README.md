@@ -39,6 +39,14 @@ Para carregar novamente os produtos genéricos, execute `python manage.py
 popular_catalogo`. O comando é seguro para repetir e não duplica produtos
 com os mesmos nomes.
 
+## Carrinho e pedidos
+
+O carrinho é mantido na sessão do navegador. É possível remover itens
+individualmente e finalizar a compra como visitante, informando nome, e-mail e
+endereço de entrega. Ao confirmar, o sistema registra o pedido e seus itens,
+reserva as unidades reduzindo o estoque e limpa o carrinho. O pedido fica com
+status **Pendente**; pagamento não faz parte deste fluxo.
+
 ## Imagens dos produtos
 
 Na tela de cadastro ou edição, selecione uma imagem no campo **Imagem**.

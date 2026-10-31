@@ -1,0 +1,33 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Finalizar compra{% endblock %}
+{% block content %}
+<h1>Finalizar compra</h1>
+<h2>Resumo do pedido</h2>
+<table>
+    <thead><tr><th>Produto</th><th>Quantidade</th><th>Subtotal</th></tr></thead>
+    <tbody>
+    {% for item in itens %}
+        <tr>
+            <td>{{ item.produto.nome }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>R$ {{ item.subtotal|floatformat:2 }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">Revise seu carrinho antes de finalizar.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+<p><strong>Total: R$ {{ total|floatformat:2 }}</strong></p>
+<form method="post" class="form-card">
+    {% csrf_token %}
+    {% for field in form %}
+        <div class="form-row">
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+        </div>
+    {% endfor %}
+    <button type="submit">Confirmar pedido</button>
+    <a class="button secondary" href="{% url 'carrinho:detalhe' %}">Voltar ao carrinho</a>
+</form>
+{% endblock %}

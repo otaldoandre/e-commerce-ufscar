@@ -27,6 +27,19 @@ def adicionar_ao_carrinho(request, pk):
     return redirect(destino)
 
 
+@require_POST
+def remover_do_carrinho(request, pk):
+    cart = get_cart(request.session)
+    if str(pk) in cart:
+        del cart[str(pk)]
+        request.session['carrinho'] = cart
+        request.session.modified = True
+        messages.success(request, 'Produto removido do carrinho.')
+    else:
+        messages.error(request, 'Esse produto não está no carrinho.')
+    return redirect('carrinho:detalhe')
+
+
 def detalhe_carrinho(request):
     itens, total = get_cart_items(request.session)
     return render(request, 'carrinho/detalhe.html', {

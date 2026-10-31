@@ -47,3 +47,24 @@ class CarrinhoTests(TestCase):
 
         self.assertContains(response, self.produto.nome)
         self.assertContains(response, 'R$ 80.00')
+        self.assertContains(response, 'Finalizar compra')
+
+    def test_remove_produto_do_carrinho(self):
+        self.client.post(reverse('carrinho:adicionar', args=[self.produto.pk]))
+
+        response = self.client.post(
+            reverse('carrinho:remover', args=[self.produto.pk]),
+        )
+
+        self.assertRedirects(response, reverse('carrinho:detalhe'))
+        self.assertEqual(self.client.session.get('carrinho', {}), {})
+
+    def test_remocao_exige_post(self):
+        self.client.post(reverse('carrinho:adicionar', args=[self.produto.pk]))
+
+        response = self.client.get(
+            reverse('carrinho:remover', args=[self.produto.pk]),
+        )
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(self.client.session['carrinho'], {str(self.produto.pk): 1})

@@ -1,0 +1,23 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Pedido confirmado{% endblock %}
+{% block content %}
+<h1>Pedido recebido!</h1>
+<p>Seu pedido <strong>#{{ pedido.pk }}</strong> foi registrado com status {{ pedido.get_status_display }}.</p>
+<p>Enviaremos as informações para {{ pedido.email_cliente }}.</p>
+<h2>Itens do pedido</h2>
+<table>
+    <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+    <tbody>
+    {% for item in pedido.itens.all %}
+        <tr>
+            <td>{{ item.nome_produto }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>R$ {{ item.preco_unitario|floatformat:2 }}</td>
+            <td>R$ {{ item.subtotal|floatformat:2 }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<p><strong>Total: R$ {{ pedido.total|floatformat:2 }}</strong></p>
+<a class="button" href="{% url 'catalogo:produto_lista' %}">Voltar aos produtos</a>
+{% endblock %}

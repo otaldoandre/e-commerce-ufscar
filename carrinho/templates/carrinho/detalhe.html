@@ -4,7 +4,7 @@
 <h1>Meu carrinho</h1>
 {% if itens %}
 <table>
-    <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+    <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th><th>Ações</th></tr></thead>
     <tbody>
     {% for item in itens %}
         <tr>
@@ -12,11 +12,18 @@
             <td>{{ item.quantidade }}</td>
             <td>R$ {{ item.produto.preco|floatformat:2 }}</td>
             <td>R$ {{ item.subtotal|floatformat:2 }}</td>
+            <td>
+                <form method="post" action="{% url 'carrinho:remover' item.produto.pk %}">
+                    {% csrf_token %}
+                    <button class="button danger" type="submit">Remover</button>
+                </form>
+            </td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
 <p><strong>Total: R$ {{ total|floatformat:2 }}</strong></p>
+<a class="button" href="{% url 'pedidos:finalizar' %}">Finalizar compra</a>
 {% else %}
 <div class="empty">Seu carrinho está vazio.</div>
 {% endif %}
