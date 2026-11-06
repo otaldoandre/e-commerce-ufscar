@@ -18,3 +18,15 @@ class FinalizacaoPedidoForm(forms.Form):
             'autocomplete': 'street-address',
         }),
     )
+
+
+class AcompanhamentoPedidoForm(forms.Form):
+    numero_pedido = forms.IntegerField(
+        label='Número do pedido',
+        min_value=1,
+        widget=forms.NumberInput(attrs={'min': 1}),
+    )
+    email_cliente = forms.EmailField(
+        label='E-mail usado na compra',
+        widget=forms.EmailInput(attrs={'autocomplete': 'email'}),
+    )

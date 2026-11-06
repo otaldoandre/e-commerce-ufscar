@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -86,3 +87,79 @@ class FinalizacaoPedidoTests(TestCase):
 
         self.assertRedirects(response, reverse('carrinho:detalhe'))
         self.assertFalse(Pedido.objects.exists())
+
+
+class AcompanhamentoPedidoTests(TestCase):
+    def setUp(self):
+        self.pedido = Pedido.objects.create(
+            nome_cliente='Ana Silva',
+            email_cliente='ana@example.com',
+            endereco_entrega='Rua das Flores, 123',
+            total=Decimal('45.50'),
+            status=Pedido.Status.ENVIADO,
+        )
+        ItemPedido.objects.create(
+            pedido=self.pedido,
+            nome_produto='Livro de exemplo',
+            preco_unitario=Decimal('45.50'),
+            quantidade=1,
+        )
+        self.url = reverse('pedidos:acompanhar')
+
+    def test_exibe_formulario_de_acompanhamento(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Acompanhar pedido')
+        self.assertContains(response, 'numero_pedido')
+
+    def test_consulta_pedido_com_numero_e_email_corretos(self):
+        response = self.client.post(self.url, {
+            'numero_pedido': self.pedido.pk,
+            'email_cliente': 'ANA@example.com',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enviado')
+        self.assertContains(response, 'Livro de exemplo')
+        self.assertContains(response, 'status atual')
+
+    def test_nao_exibe_pedido_quando_email_nao_corresponde(self):
+        response = self.client.post(self.url, {
+            'numero_pedido': self.pedido.pk,
+            'email_cliente': 'outra@example.com',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Não foi possível localizar um pedido')
+        self.assertNotContains(response, 'Livro de exemplo')
+
+    def test_nao_aceita_numero_de_pedido_invalido(self):
+        response = self.client.post(self.url, {
+            'numero_pedido': 0,
+            'email_cliente': 'ana@example.com',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Livro de exemplo')
+
+    def test_administrador_pode_atualizar_status_do_pedido(self):
+        usuario = get_user_model().objects.create_superuser(
+            username='admin',
+            email='admin@example.com',
+            password='senha-de-teste',
+        )
+        self.client.force_login(usuario)
+
+        self.client.post(reverse('admin:pedidos_pedido_changelist'), {
+            'form-TOTAL_FORMS': '1',
+            'form-INITIAL_FORMS': '1',
+            'form-MIN_NUM_FORMS': '0',
+            'form-MAX_NUM_FORMS': '1000',
+            'form-0-id': self.pedido.pk,
+            'form-0-status': Pedido.Status.ENTREGUE,
+            '_save': 'Salvar',
+        })
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, Pedido.Status.ENTREGUE)

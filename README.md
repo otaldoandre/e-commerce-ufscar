@@ -47,6 +47,10 @@ endereço de entrega. Ao confirmar, o sistema registra o pedido e seus itens,
 reserva as unidades reduzindo o estoque e limpa o carrinho. O pedido fica com
 status **Pendente**; pagamento não faz parte deste fluxo.
 
+O cliente pode acompanhar o pedido informando seu número e o e-mail usado na
+compra. A equipe pode atualizar o status (Pendente, Confirmado, Enviado,
+Entregue ou Cancelado) pela lista de pedidos do Django Admin (`/admin/`).
+
 ## Imagens dos produtos
 
 Na tela de cadastro ou edição, selecione uma imagem no campo **Imagem**.

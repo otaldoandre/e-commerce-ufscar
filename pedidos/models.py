@@ -6,6 +6,10 @@ from django.db import models
 class Pedido(models.Model):
     class Status(models.TextChoices):
         PENDENTE = 'pendente', 'Pendente'
+        CONFIRMADO = 'confirmado', 'Confirmado'
+        ENVIADO = 'enviado', 'Enviado'
+        ENTREGUE = 'entregue', 'Entregue'
+        CANCELADO = 'cancelado', 'Cancelado'
 
     nome_cliente = models.CharField('nome do cliente', max_length=150)
     email_cliente = models.EmailField('e-mail do cliente')
