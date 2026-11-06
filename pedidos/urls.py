@@ -6,4 +6,5 @@ app_name = 'pedidos'
 
 urlpatterns = [
     path('finalizar/', views.finalizar_pedido, name='finalizar'),
+    path('acompanhar/', views.acompanhar_pedido, name='acompanhar'),
 ]

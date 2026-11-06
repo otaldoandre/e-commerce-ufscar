@@ -6,6 +6,20 @@ from django.db import models
 class Pedido(models.Model):
     class Status(models.TextChoices):
         PENDENTE = 'pendente', 'Pendente'
+        CONFIRMADO = 'confirmado', 'Confirmado'
+        ENVIADO = 'enviado', 'Enviado'
+        ENTREGUE = 'entregue', 'Entregue'
+        CANCELADO = 'cancelado', 'Cancelado'
+
+    class FormaPagamento(models.TextChoices):
+        PIX = 'pix', 'Pix'
+        CARTAO_CREDITO = 'cartao_credito', 'Cartão de crédito'
+        BOLETO = 'boleto', 'Boleto bancário'
+
+    class StatusPagamento(models.TextChoices):
+        NAO_PROCESSADO = 'nao_processado', 'Não processado'
+        AUTORIZADO = 'autorizado', 'Autorizado'
+        RECUSADO = 'recusado', 'Recusado'
 
     nome_cliente = models.CharField('nome do cliente', max_length=150)
     email_cliente = models.EmailField('e-mail do cliente')
@@ -17,6 +31,18 @@ class Pedido(models.Model):
         default=Status.PENDENTE,
     )
     total = models.DecimalField('total', max_digits=12, decimal_places=2)
+    forma_pagamento = models.CharField(
+        'forma de pagamento',
+        max_length=20,
+        choices=FormaPagamento.choices,
+        blank=True,
+    )
+    status_pagamento = models.CharField(
+        'status do pagamento',
+        max_length=20,
+        choices=StatusPagamento.choices,
+        default=StatusPagamento.NAO_PROCESSADO,
+    )
     criado_em = models.DateTimeField('criado em', auto_now_add=True)
 
     class Meta:

@@ -3,7 +3,10 @@
 {% block content %}
 <h1>Pedido recebido!</h1>
 <p>Seu pedido <strong>#{{ pedido.pk }}</strong> foi registrado com status {{ pedido.get_status_display }}.</p>
+<p>Pagamento {{ pedido.get_status_pagamento_display }} via {{ pedido.get_forma_pagamento_display }}. A autorização foi simulada; nenhuma cobrança real foi feita.</p>
 <p>Enviaremos as informações para {{ pedido.email_cliente }}.</p>
+<p>Para acompanhar as atualizações, informe o número do pedido e o e-mail usado na compra.</p>
+<a class="button" href="{% url 'pedidos:acompanhar' %}">Acompanhar pedido</a>
 <h2>Itens do pedido</h2>
 <table>
     <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>

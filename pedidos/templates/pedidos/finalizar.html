@@ -27,7 +27,9 @@
             {{ field.errors }}
         </div>
     {% endfor %}
-    <button type="submit">Confirmar pedido</button>
+        {{ form.non_field_errors }}
+        <p class="warning">Modo de demonstração: a autorização é simulada e não há cobrança real.</p>
+        <button type="submit">Confirmar pedido</button>
     <a class="button secondary" href="{% url 'carrinho:detalhe' %}">Voltar ao carrinho</a>
 </form>
 {% endblock %}

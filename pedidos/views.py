@@ -6,8 +6,9 @@ from django.views.decorators.http import require_http_methods
 from catalogo.models import Produto
 from carrinho.cart import CART_SESSION_KEY, get_cart, get_cart_items
 
-from .forms import FinalizacaoPedidoForm
+from .forms import AcompanhamentoPedidoForm, FinalizacaoPedidoForm
 from .models import ItemPedido, Pedido
+from .pagamentos import autorizar_pagamento
 
 
 @require_http_methods(['GET', 'POST'])
@@ -73,11 +74,26 @@ def finalizar_pedido(request):
             (produto.preco * quantities[produto.pk] for produto in produtos),
             start=0,
         )
+        resultado_pagamento = autorizar_pagamento(
+            form.cleaned_data['forma_pagamento'],
+            total_pedido,
+        )
+        if not resultado_pagamento.autorizado:
+            form.add_error(None, resultado_pagamento.mensagem)
+            return render(request, 'pedidos/finalizar.html', {
+                'form': form,
+                'itens': itens,
+                'total': total,
+            })
+
         pedido = Pedido.objects.create(
             nome_cliente=form.cleaned_data['nome_cliente'],
             email_cliente=form.cleaned_data['email_cliente'],
             endereco_entrega=form.cleaned_data['endereco_entrega'],
             total=total_pedido,
+            status=Pedido.Status.CONFIRMADO,
+            forma_pagamento=form.cleaned_data['forma_pagamento'],
+            status_pagamento=Pedido.StatusPagamento.AUTORIZADO,
         )
         for produto in produtos:
             quantidade = quantities[produto.pk]
@@ -94,3 +110,35 @@ def finalizar_pedido(request):
     request.session.pop(CART_SESSION_KEY, None)
     request.session.modified = True
     return render(request, 'pedidos/confirmacao.html', {'pedido': pedido})
+
+
+@require_http_methods(['GET', 'POST'])
+def acompanhar_pedido(request):
+    form = AcompanhamentoPedidoForm(request.POST or None)
+    pedido = None
+
+    if request.method == 'POST' and form.is_valid():
+        pedido = (
+            Pedido.objects.prefetch_related('itens')
+            .filter(
+                pk=form.cleaned_data['numero_pedido'],
+                email_cliente__iexact=form.cleaned_data['email_cliente'],
+            )
+            .first()
+        )
+        if pedido is None:
+            form.add_error(
+                None,
+                'Não foi possível localizar um pedido com esses dados.',
+            )
+
+    return render(request, 'pedidos/acompanhamento.html', {
+        'form': form,
+        'pedido': pedido,
+        'etapas_status': [
+            Pedido.Status.PENDENTE,
+            Pedido.Status.CONFIRMADO,
+            Pedido.Status.ENVIADO,
+            Pedido.Status.ENTREGUE,
+        ],
+    })

@@ -44,8 +44,15 @@ com os mesmos nomes.
 O carrinho é mantido na sessão do navegador. É possível remover itens
 individualmente e finalizar a compra como visitante, informando nome, e-mail e
 endereço de entrega. Ao confirmar, o sistema registra o pedido e seus itens,
-reserva as unidades reduzindo o estoque e limpa o carrinho. O pedido fica com
-status **Pendente**; pagamento não faz parte deste fluxo.
+simula a autorização do pagamento, reserva as unidades reduzindo o estoque e
+limpa o carrinho. Estão disponíveis Pix, cartão de crédito e boleto. A simulação
+aprova pagamentos com valor maior que zero; ela não se conecta a um provedor,
+não cobra o cliente nem solicita ou armazena dados de cartão. O pedido fica com
+status **Confirmado** após a autorização simulada.
+
+O cliente pode acompanhar o pedido informando seu número e o e-mail usado na
+compra. A equipe pode atualizar o status (Pendente, Confirmado, Enviado,
+Entregue ou Cancelado) pela lista de pedidos do Django Admin (`/admin/`).
 
 ## Imagens dos produtos
 

@@ -1,0 +1,323 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mindex 77de5fe..6ef57a3 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -44,8 +44,15 @@[m [mcom os mesmos nomes.[m
+ O carrinho é mantido na sessão do navegador. É possível remover itens[m
+ individualmente e finalizar a compra como visitante, informando nome, e-mail e[m
+ endereço de entrega. Ao confirmar, o sistema registra o pedido e seus itens,[m
+[31m-reserva as unidades reduzindo o estoque e limpa o carrinho. O pedido fica com[m
+[31m-status **Pendente**; pagamento não faz parte deste fluxo.[m
+[32m+[m[32msimula a autorização do pagamento, reserva as unidades reduzindo o estoque e[m
+[32m+[m[32mlimpa o carrinho. Estão disponíveis Pix, cartão de crédito e boleto. A simulação[m
+[32m+[m[32maprova pagamentos com valor maior que zero; ela não se conecta a um provedor,[m
+[32m+[m[32mnão cobra o cliente nem solicita ou armazena dados de cartão. O pedido fica com[m
+[32m+[m[32mstatus **Confirmado** após a autorização simulada.[m
+[32m+[m
+[32m+[m[32mO cliente pode acompanhar o pedido informando seu número e o e-mail usado na[m
+[32m+[m[32mcompra. A equipe pode atualizar o status (Pendente, Confirmado, Enviado,[m
+[32m+[m[32mEntregue ou Cancelado) pela lista de pedidos do Django Admin (`/admin/`).[m
+ [m
+ ## Imagens dos produtos[m
+ [m
+[1mdiff --git a/catalogo/templates/catalogo/base.html b/catalogo/templates/catalogo/base.html[m
+[1mindex 968b3ac..82bd851 100644[m
+[1m--- a/catalogo/templates/catalogo/base.html[m
+[1m+++ b/catalogo/templates/catalogo/base.html[m
+[36m@@ -35,6 +35,7 @@[m
+             <a href="{% url 'catalogo:categoria_lista' %}">Categorias</a>[m
+             <a href="{% url 'catalogo:produto_criar' %}">Novo produto</a>[m
+             <a href="{% url 'carrinho:detalhe' %}">Carrinho ({{ carrinho_quantidade }})</a>[m
+[32m+[m[32m            <a href="{% url 'pedidos:acompanhar' %}">Acompanhar pedido</a>[m
+         </nav>[m
+     </header>[m
+     <main>[m
+[1mdiff --git a/pedidos/forms.py b/pedidos/forms.py[m
+[1mindex ff9f49f..bdb3393 100644[m
+[1m--- a/pedidos/forms.py[m
+[1m+++ b/pedidos/forms.py[m
+[36m@@ -1,5 +1,7 @@[m
+ from django import forms[m
+ [m
+[32m+[m[32mfrom .models import Pedido[m
+[32m+[m
+ [m
+ class FinalizacaoPedidoForm(forms.Form):[m
+     nome_cliente = forms.CharField([m
+[36m@@ -18,3 +20,20 @@[m [mclass FinalizacaoPedidoForm(forms.Form):[m
+             'autocomplete': 'street-address',[m
+         }),[m
+     )[m
+[32m+[m[32m    forma_pagamento = forms.ChoiceField([m
+[32m+[m[32m        label='Forma de pagamento',[m
+[32m+[m[32m        choices=Pedido.FormaPagamento.choices,[m
+[32m+[m[32m        widget=forms.Select(),[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass AcompanhamentoPedidoForm(forms.Form):[m
+[32m+[m[32m    numero_pedido = forms.IntegerField([m
+[32m+[m[32m        label='Número do pedido',[m
+[32m+[m[32m        min_value=1,[m
+[32m+[m[32m        widget=forms.NumberInput(attrs={'min': 1}),[m
+[32m+[m[32m    )[m
+[32m+[m[32m    email_cliente = forms.EmailField([m
+[32m+[m[32m        label='E-mail usado na compra',[m
+[32m+[m[32m        widget=forms.EmailInput(attrs={'autocomplete': 'email'}),[m
+[32m+[m[32m    )[m
+[1mdiff --git a/pedidos/models.py b/pedidos/models.py[m
+[1mindex f0bfa13..580434c 100644[m
+[1m--- a/pedidos/models.py[m
+[1m+++ b/pedidos/models.py[m
+[36m@@ -6,6 +6,20 @@[m [mfrom django.db import models[m
+ class Pedido(models.Model):[m
+     class Status(models.TextChoices):[m
+         PENDENTE = 'pendente', 'Pendente'[m
+[32m+[m[32m        CONFIRMADO = 'confirmado', 'Confirmado'[m
+[32m+[m[32m        ENVIADO = 'enviado', 'Enviado'[m
+[32m+[m[32m        ENTREGUE = 'entregue', 'Entregue'[m
+[32m+[m[32m        CANCELADO = 'cancelado', 'Cancelado'[m
+[32m+[m
+[32m+[m[32m    class FormaPagamento(models.TextChoices):[m
+[32m+[m[32m        PIX = 'pix', 'Pix'[m
+[32m+[m[32m        CARTAO_CREDITO = 'cartao_credito', 'Cartão de crédito'[m
+[32m+[m[32m        BOLETO = 'boleto', 'Boleto bancário'[m
+[32m+[m
+[32m+[m[32m    class StatusPagamento(models.TextChoices):[m
+[32m+[m[32m        NAO_PROCESSADO = 'nao_processado', 'Não processado'[m
+[32m+[m[32m        AUTORIZADO = 'autorizado', 'Autorizado'[m
+[32m+[m[32m        RECUSADO = 'recusado', 'Recusado'[m
+ [m
+     nome_cliente = models.CharField('nome do cliente', max_length=150)[m
+     email_cliente = models.EmailField('e-mail do cliente')[m
+[36m@@ -17,6 +31,18 @@[m [mclass Pedido(models.Model):[m
+         default=Status.PENDENTE,[m
+     )[m
+     total = models.DecimalField('total', max_digits=12, decimal_places=2)[m
+[32m+[m[32m    forma_pagamento = models.CharField([m
+[32m+[m[32m        'forma de pagamento',[m
+[32m+[m[32m        max_length=20,[m
+[32m+[m[32m        choices=FormaPagamento.choices,[m
+[32m+[m[32m        blank=True,[m
+[32m+[m[32m    )[m
+[32m+[m[32m    status_pagamento = models.CharField([m
+[32m+[m[32m        'status do pagamento',[m
+[32m+[m[32m        max_length=20,[m
+[32m+[m[32m        choices=StatusPagamento.choices,[m
+[32m+[m[32m        default=StatusPagamento.NAO_PROCESSADO,[m
+[32m+[m[32m    )[m
+     criado_em = models.DateTimeField('criado em', auto_now_add=True)[m
+ [m
+     class Meta:[m
+[1mdiff --git a/pedidos/templates/pedidos/confirmacao.html b/pedidos/templates/pedidos/confirmacao.html[m
+[1mindex ea89e20..38af2c6 100644[m
+[1m--- a/pedidos/templates/pedidos/confirmacao.html[m
+[1m+++ b/pedidos/templates/pedidos/confirmacao.html[m
+[36m@@ -3,7 +3,10 @@[m
+ {% block content %}[m
+ <h1>Pedido recebido!</h1>[m
+ <p>Seu pedido <strong>#{{ pedido.pk }}</strong> foi registrado com status {{ pedido.get_status_display }}.</p>[m
+[32m+[m[32m<p>Pagamento {{ pedido.get_status_pagamento_display }} via {{ pedido.get_forma_pagamento_display }}. A autorização foi simulada; nenhuma cobrança real foi feita.</p>[m
+ <p>Enviaremos as informações para {{ pedido.email_cliente }}.</p>[m
+[32m+[m[32m<p>Para acompanhar as atualizações, informe o número do pedido e o e-mail usado na compra.</p>[m
+[32m+[m[32m<a class="button" href="{% url 'pedidos:acompanhar' %}">Acompanhar pedido</a>[m
+ <h2>Itens do pedido</h2>[m
+ <table>[m
+     <thead><tr><th>Produto</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>[m
+[1mdiff --git a/pedidos/templates/pedidos/finalizar.html b/pedidos/templates/pedidos/finalizar.html[m
+[1mindex a685a04..dc872e9 100644[m
+[1m--- a/pedidos/templates/pedidos/finalizar.html[m
+[1m+++ b/pedidos/templates/pedidos/finalizar.html[m
+[36m@@ -27,7 +27,9 @@[m
+             {{ field.errors }}[m
+         </div>[m
+     {% endfor %}[m
+[31m-    <button type="submit">Confirmar pedido</button>[m
+[32m+[m[32m        {{ form.non_field_errors }}[m
+[32m+[m[32m        <p class="warning">Modo de demonstração: a autorização é simulada e não há cobrança real.</p>[m
+[32m+[m[32m        <button type="submit">Confirmar pedido</button>[m
+     <a class="button secondary" href="{% url 'carrinho:detalhe' %}">Voltar ao carrinho</a>[m
+ </form>[m
+ {% endblock %}[m
+[1mdiff --git a/pedidos/tests.py b/pedidos/tests.py[m
+[1mindex f907519..7e53d70 100644[m
+[1m--- a/pedidos/tests.py[m
+[1m+++ b/pedidos/tests.py[m
+[36m@@ -1,5 +1,6 @@[m
+ from decimal import Decimal[m
+ [m
+[32m+[m[32mfrom django.contrib.auth import get_user_model[m
+ from django.test import TestCase[m
+ from django.urls import reverse[m
+ [m
+[36m@@ -22,6 +23,7 @@[m [mclass FinalizacaoPedidoTests(TestCase):[m
+             'nome_cliente': 'Ana Silva',[m
+             'email_cliente': 'ana@example.com',[m
+             'endereco_entrega': 'Rua das Flores, 123',[m
+[32m+[m[32m            'forma_pagamento': Pedido.FormaPagamento.PIX,[m
+         }[m
+ [m
+     def colocar_no_carrinho(self, quantidade=1):[m
+[36m@@ -50,6 +52,12 @@[m [mclass FinalizacaoPedidoTests(TestCase):[m
+         self.assertContains(response, 'Pedido recebido')[m
+         self.assertEqual(pedido.nome_cliente, 'Ana Silva')[m
+         self.assertEqual(pedido.total, Decimal('91.00'))[m
+[32m+[m[32m        self.assertEqual(pedido.status, Pedido.Status.CONFIRMADO)[m
+[32m+[m[32m        self.assertEqual(pedido.forma_pagamento, Pedido.FormaPagamento.PIX)[m
+[32m+[m[32m        self.assertEqual([m
+[32m+[m[32m            pedido.status_pagamento,[m
+[32m+[m[32m            Pedido.StatusPagamento.AUTORIZADO,[m
+[32m+[m[32m        )[m
+         self.assertEqual(item.nome_produto, self.produto.nome)[m
+         self.assertEqual(item.preco_unitario, Decimal('45.50'))[m
+         self.assertEqual(item.quantidade, 2)[m
+[36m@@ -81,8 +89,98 @@[m [mclass FinalizacaoPedidoTests(TestCase):[m
+         self.produto.refresh_from_db()[m
+         self.assertEqual(self.produto.estoque, 4)[m
+ [m
+[32m+[m[32m    def test_pagamento_com_valor_zero_nao_e_autorizado(self):[m
+[32m+[m[32m        self.colocar_no_carrinho()[m
+[32m+[m[32m        self.produto.preco = Decimal('0.00')[m
+[32m+[m[32m        self.produto.save(update_fields=['preco'])[m
+[32m+[m
+[32m+[m[32m        response = self.client.post(self.url, self.dados_cliente)[m
+[32m+[m
+[32m+[m[32m        self.assertEqual(response.status_code, 200)[m
+[32m+[m[32m        self.assertContains(response, 'O valor do pagamento deve ser maior que zero.')[m
+[32m+[m[32m        self.assertFalse(Pedido.objects.exists())[m
+[32m+[m[32m        self.produto.refresh_from_db()[m
+[32m+[m[32m        self.assertEqual(self.produto.estoque, 4)[m
+[32m+[m[32m        self.assertIn('carrinho', self.client.session)[m
+[32m+[m
+     def test_carrinho_vazio_nao_pode_ser_finalizado(self):[m
+         response = self.client.get(self.url)[m
+ [m
+         self.assertRedirects(response, reverse('carrinho:detalhe'))[m
+         self.assertFalse(Pedido.objects.exists())[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass AcompanhamentoPedidoTests(TestCase):[m
+[32m+[m[32m    def setUp(self):[m
+[32m+[m[32m        self.pedido = Pedido.objects.create([m
+[32m+[m[32m            nome_cliente='Ana Silva',[m
+[32m+[m[32m            email_cliente='ana@example.com',[m
+[32m+[m[32m            endereco_entrega='Rua das Flores, 123',[m
+[32m+[m[32m            total=Decimal('45.50'),[m
+[32m+[m[32m            status=Pedido.Status.ENVIADO,[m
+[32m+[m[32m        )[m
+[32m+[m[32m        ItemPedido.objects.create([m
+[32m+[m[32m            pedido=self.pedido,[m
+[32m+[m[32m            nome_produto='Livro de exemplo',[m
+[32m+[m[32m            preco_unitario=Decimal('45.50'),[m
+[32m+[m[32m            quantidade=1,[m
+[32m+[m[32m        )[m
+[32m+[m[32m        self.url = reverse('pedidos:acompanhar')[m
+[32m+[m
+[32m+[m[32m    def test_exibe_formulario_de_acompanhamento(self):[m
+[32m+[m[32m        response = self.client.get(self.url)[m
+[32m+[m
+[32m+[m[32m        self.assertEqual(response.status_code, 200)[m
+[32m+[m[32m        self.assertContains(response, 'Acompanhar pedido')[m
+[32m+[m[32m        self.assertContains(response, 'numero_pedido')[m
+[32m+[m
+[32m+[m[32m    def test_consulta_pedido_com_numero_e_email_corretos(self):[m
+[32m+[m[32m        response = self.client.post(self.url, {[m
+[32m+[m[32m            'numero_pedido': self.pedido.pk,[m
+[32m+[m[32m            'email_cliente': 'ANA@example.com',[m
+[32m+[m[32m        })[m
+[32m+[m
+[32m+[m[32m        self.assertEqual(response.status_code, 200)[m
+[32m+[m[32m        self.assertContains(response, 'Enviado')[m
+[32m+[m[32m        self.assertContains(response, 'Livro de exemplo')[m
+[32m+[m[32m        self.assertContains(response, 'status atual')[m
+[32m+[m
+[32m+[m[32m    def test_nao_exibe_pedido_quando_email_nao_corresponde(self):[m
+[32m+[m[32m        response = self.client.post(self.url, {[m
+[32m+[m[32m            'numero_pedido': self.pedido.pk,[m
+[32m+[m[32m            'email_cliente': 'outra@example.com',[m
+[32m+[m[32m        })[m
+[32m+[m
+[32m+[m[32m        self.assertEqual(response.status_code, 200)[m
+[32m+[m[32m        self.assertContains(response, 'Não foi possível localizar um pedido')[m
+[32m+[m[32m        self.assertNotContains(response, 'Livro de exemplo')[m
+[32m+[m
+[32m+[m[32m    def test_nao_aceita_numero_de_pedido_invalido(self):[m
+[32m+[m[32m        response = self.client.post(self.url, {[m
+[32m+[m[32m            'numero_pedido': 0,[m
+[32m+[m[32m            'email_cliente': 'ana@example.com',[m
+[32m+[m[32m        })[m
+[32m+[m
+[32m+[m[32m        self.assertEqual(response.status_code, 200)[m
+[32m+[m[32m        self.assertNotContains(response, 'Livro de exemplo')[m
+[32m+[m
+[32m+[m[32m    def test_administrador_pode_atualizar_status_do_pedido(self):[m
+[32m+[m[32m        usuario = get_user_model().objects.create_superuser([m
+[32m+[m[32m            username='admin',[m
+[32m+[m[32m            email='admin@example.com',[m
+[32m+[m[32m            password='senha-de-teste',[m
+[32m+[m[32m        )[m
+[32m+[m[32m        self.client.force_login(usuario)[m
+[32m+[m
+[32m+[m[32m        self.client.post(reverse('admin:pedidos_pedido_changelist'), {[m
+[32m+[m[32m            'form-TOTAL_FORMS': '1',[m
+[32m+[m[32m            'form-INITIAL_FORMS': '1',[m
+[32m+[m[32m            'form-MIN_NUM_FORMS': '0',[m
+[32m+[m[32m            'form-MAX_NUM_FORMS': '1000',[m
+[32m+[m[32m            'form-0-id': self.pedido.pk,[m
+[32m+[m[32m            'form-0-status': Pedido.Status.ENTREGUE,[m
+[32m+[m[32m            '_save': 'Salvar',[m
+[32m+[m[32m        })[m
+[32m+[m
+[32m+[m[32m        self.pedido.refresh_from_db()[m
+[32m+[m[32m        self.assertEqual(self.pedido.status, Pedido.Status.ENTREGUE)[m
+[1mdiff --git a/pedidos/urls.py b/pedidos/urls.py[m
+[1mindex ea191ca..af2097b 100644[m
+[1m--- a/pedidos/urls.py[m
+[1m+++ b/pedidos/urls.py[m
+[36m@@ -6,4 +6,5 @@[m [mapp_name = 'pedidos'[m
+ [m
+ urlpatterns = [[m
+     path('finalizar/', views.finalizar_pedido, name='finalizar'),[m
+[32m+[m[32m    path('acompanhar/', views.acompanhar_pedido, name='acompanhar'),[m
+ ][m
+[1mdiff --git a/pedidos/views.py b/pedidos/views.py[m
+[1mindex b8155b8..46fe278 100644[m
+[1m--- a/pedidos/views.py[m
+[1m+++ b/pedidos/views.py[m
+[36m@@ -6,8 +6,9 @@[m [mfrom django.views.decorators.http import require_http_methods[m
+ from catalogo.models import Produto[m
+ from carrinho.cart import CART_SESSION_KEY, get_cart, get_cart_items[m
+ [m
+[31m-from .forms import FinalizacaoPedidoForm[m
+[32m+[m[32mfrom .forms import AcompanhamentoPedidoForm, FinalizacaoPedidoForm[m
+ from .models import ItemPedido, Pedido[m
+[32m+[m[32mfrom .pagamentos import autorizar_pagamento[m
+ [m
+ [m
+ @require_http_methods(['GET', 'POST'])[m
+[36m@@ -73,11 +74,26 @@[m [mdef finalizar_pedido(request):[m
+             (produto.preco * quantities[produto.pk] for produto in produtos),[m
+             start=0,[m
+         )[m
+[32m+[m[32m        resultado_pagamento = autorizar_pagamento([m
+[32m+[m[32m            form.cleaned_data['forma_pagamento'],[m
+[32m+[m[32m            total_pedido,[m
+[32m+[m[32m        )[m
+[32m+[m[32m        if not resultado_pagamento.autorizado:[m
+[32m+[m[32m            form.add_error(None, resultado_pagamento.mensagem)[m
+[32m+[m[32m            return render(request, 'pedidos/finalizar.html', {[m
+[32m+[m[32m                'form': form,[m
+[32m+[m[32m                'itens': itens,[m
+[32m+[m[32m                'total': total,[m
+[32m+[m[32m            })[m
+[32m+[m
+         pedido = Pedido.objects.create([m
+             nome_cliente=form.cleaned_data['nome_cliente'],[m
+             email_cliente=form.cleaned_data['email_cliente'],[m
+             endereco_entrega=form.cleaned_data['endereco_entrega'],[m
+             total=total_pedido,[m
+[32m+[m[32m            status=Pedido.Status.CONFIRMADO,[m
+[32m+[m[32m            forma_pagamento=form.cleaned_data['forma_pagamento'],[m
+[32m+[m[32m            status_pagamento=Pedido.StatusPagamento.AUTORIZADO,[m
+         )[m
+         for produto in produtos:
