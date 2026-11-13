@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models.deletion import ProtectedError
 from django.db.models import Q
 from django.shortcuts import redirect
@@ -48,7 +49,14 @@ class ProdutoListView(ListView):
         return context
 
 
-class ProdutoCreateView(CreateView):
+class AdminCatalogoMixin(UserPassesTestMixin):
+    login_url = 'clientes:login'
+
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_staff
+
+
+class ProdutoCreateView(AdminCatalogoMixin, CreateView):
     model = Produto
     form_class = ProdutoForm
     template_name = 'catalogo/produto_form.html'
@@ -59,7 +67,7 @@ class ProdutoCreateView(CreateView):
         return super().form_valid(form)
 
 
-class ProdutoUpdateView(UpdateView):
+class ProdutoUpdateView(AdminCatalogoMixin, UpdateView):
     model = Produto
     form_class = ProdutoForm
     template_name = 'catalogo/produto_form.html'
@@ -70,7 +78,7 @@ class ProdutoUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-class ProdutoDeleteView(DeleteView):
+class ProdutoDeleteView(AdminCatalogoMixin, DeleteView):
     model = Produto
     template_name = 'catalogo/produto_confirm_delete.html'
     success_url = reverse_lazy('catalogo:produto_lista')
@@ -80,13 +88,13 @@ class ProdutoDeleteView(DeleteView):
         return super().form_valid(form)
 
 
-class CategoriaListView(ListView):
+class CategoriaListView(AdminCatalogoMixin, ListView):
     model = Categoria
     template_name = 'catalogo/categoria_list.html'
     context_object_name = 'categorias'
 
 
-class CategoriaCreateView(CreateView):
+class CategoriaCreateView(AdminCatalogoMixin, CreateView):
     model = Categoria
     form_class = CategoriaForm
     template_name = 'catalogo/categoria_form.html'
@@ -97,7 +105,7 @@ class CategoriaCreateView(CreateView):
         return super().form_valid(form)
 
 
-class CategoriaUpdateView(UpdateView):
+class CategoriaUpdateView(AdminCatalogoMixin, UpdateView):
     model = Categoria
     form_class = CategoriaForm
     template_name = 'catalogo/categoria_form.html'
@@ -108,7 +116,7 @@ class CategoriaUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-class CategoriaDeleteView(DeleteView):
+class CategoriaDeleteView(AdminCatalogoMixin, DeleteView):
     model = Categoria
     template_name = 'catalogo/categoria_confirm_delete.html'
     success_url = reverse_lazy('catalogo:categoria_lista')

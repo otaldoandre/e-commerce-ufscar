@@ -3,6 +3,7 @@ from io import BytesIO
 
 from django.test import TestCase
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
@@ -11,6 +12,13 @@ from .models import Categoria, Produto
 
 class CatalogoTests(TestCase):
     def setUp(self):
+        usuario = get_user_model().objects.create_user(
+            username='admin@example.com',
+            email='admin@example.com',
+            password='senha-segura-123',
+            is_staff=True,
+        )
+        self.client.force_login(usuario)
         self.categoria = Categoria.objects.create(nome='Eletrônicos')
         self.produto = Produto.objects.create(
             nome='Notebook UFSCar',

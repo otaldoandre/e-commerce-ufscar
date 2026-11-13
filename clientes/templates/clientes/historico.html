@@ -1,0 +1,25 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Histórico de compras{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Histórico de compras</h1>
+    <p>Pedidos associados à sua conta.</p>
+</div>
+{% if cliente %}
+    <h2>Compras de {{ cliente.nome }}</h2>
+    <p>Pontos de fidelidade: <strong>{{ cliente.pontos_fidelidade }}</strong></p>
+    {% for pedido in pedidos %}
+        <article class="form-card">
+            <h3>Pedido #{{ pedido.pk }}</h3>
+            <p>Status: {{ pedido.get_status_display }} | Total: R$ {{ pedido.total|floatformat:2 }}</p>
+            <ul>
+            {% for item in pedido.itens.all %}
+                <li>{{ item.quantidade }} x {{ item.nome_produto }}</li>
+            {% endfor %}
+            </ul>
+        </article>
+    {% empty %}
+        <p class="empty">Nenhuma compra registrada.</p>
+    {% endfor %}
+{% endif %}
+{% endblock %}

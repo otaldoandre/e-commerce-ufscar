@@ -2,22 +2,10 @@
 {% block title %}Acompanhar pedido{% endblock %}
 {% block content %}
 <h1>Acompanhar pedido</h1>
-<p>Informe o número do pedido e o e-mail usado na compra para consultar o status.</p>
-<form method="post" class="form-card">
-    {% csrf_token %}
-    {% for field in form %}
-        <div class="form-row">
-            {{ field.label_tag }}
-            {{ field }}
-            {{ field.errors }}
-        </div>
-    {% endfor %}
-    {{ form.non_field_errors }}
-    <button type="submit">Consultar pedido</button>
-</form>
+<p>Confira abaixo seus pedidos que ainda estão em andamento.</p>
 
-{% if pedido %}
-    <section>
+{% for pedido in pedidos %}
+    <section class="form-card">
         <h2>Pedido #{{ pedido.pk }}</h2>
         <p>Status atual: <strong>{{ pedido.get_status_display }}</strong></p>
         {% if pedido.forma_pagamento %}
@@ -28,14 +16,14 @@
             <p class="warning">Este pedido foi cancelado.</p>
         {% else %}
             <ol>
-                {% for etapa in etapas_status %}
-                    <li>
-                        {{ etapa.label }}
-                        {% if pedido.status == etapa %}
-                            — status atual
-                        {% endif %}
-                    </li>
-                {% endfor %}
+            {% for etapa in etapas_status %}
+                <li>
+                    {{ etapa.label }}
+                    {% if pedido.status == etapa %}
+                        — status atual
+                    {% endif %}
+                </li>
+            {% endfor %}
             </ol>
         {% endif %}
         <h3>Itens</h3>
@@ -53,5 +41,7 @@
         </table>
         <p><strong>Total: R$ {{ pedido.total|floatformat:2 }}</strong></p>
     </section>
-{% endif %}
+{% empty %}
+    <p class="empty">Você não possui pedidos em andamento.</p>
+{% endfor %}
 {% endblock %}

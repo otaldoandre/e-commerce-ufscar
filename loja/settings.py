@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'catalogo',
     'carrinho',
     'pedidos',
+    'clientes',
 ]
 
 MIDDLEWARE = [
@@ -64,6 +65,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'loja.urls'
+LOGIN_URL = '/clientes/login/'
 
 TEMPLATES = [
     {

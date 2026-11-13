@@ -1,18 +1,31 @@
+from decimal import Decimal
+
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
 from catalogo.models import Produto
 from carrinho.cart import CART_SESSION_KEY, get_cart, get_cart_items
+from clientes.models import Cliente
 
 from .forms import AcompanhamentoPedidoForm, FinalizacaoPedidoForm
 from .models import ItemPedido, Pedido
 from .pagamentos import autorizar_pagamento
 
 
+@login_required(login_url='clientes:login')
 @require_http_methods(['GET', 'POST'])
 def finalizar_pedido(request):
+    cliente = getattr(request.user, 'cliente', None)
+    if cliente is None:
+        messages.error(
+            request,
+            'Complete seu cadastro antes de finalizar a compra.',
+        )
+        return redirect('clientes:cadastro')
+
     cart = get_cart(request.session)
     if not cart:
         messages.error(request, 'Adicione produtos ao carrinho antes de finalizar.')
@@ -74,6 +87,11 @@ def finalizar_pedido(request):
             (produto.preco * quantities[produto.pk] for produto in produtos),
             start=0,
         )
+        cliente = Cliente.objects.select_for_update().get(pk=cliente.pk)
+        pontos_resgatados = 0
+        if cliente is not None and cliente.pontos_fidelidade >= 100:
+            total_pedido = max(total_pedido - Decimal('10.00'), Decimal('0.00'))
+            pontos_resgatados = 100
         resultado_pagamento = autorizar_pagamento(
             form.cleaned_data['forma_pagamento'],
             total_pedido,
@@ -87,14 +105,21 @@ def finalizar_pedido(request):
             })
 
         pedido = Pedido.objects.create(
-            nome_cliente=form.cleaned_data['nome_cliente'],
-            email_cliente=form.cleaned_data['email_cliente'],
-            endereco_entrega=form.cleaned_data['endereco_entrega'],
+            nome_cliente=cliente.nome,
+            email_cliente=cliente.email,
+            endereco_entrega=cliente.endereco,
             total=total_pedido,
             status=Pedido.Status.CONFIRMADO,
             forma_pagamento=form.cleaned_data['forma_pagamento'],
             status_pagamento=Pedido.StatusPagamento.AUTORIZADO,
+            cliente=cliente,
         )
+        cliente.pontos_fidelidade = (
+            cliente.pontos_fidelidade
+            - pontos_resgatados
+            + int(total_pedido)
+        )
+        cliente.save(update_fields=['pontos_fidelidade', 'atualizado_em'])
         for produto in produtos:
             quantidade = quantities[produto.pk]
             ItemPedido.objects.create(
@@ -113,28 +138,22 @@ def finalizar_pedido(request):
 
 
 @require_http_methods(['GET', 'POST'])
+@login_required(login_url='clientes:login')
 def acompanhar_pedido(request):
-    form = AcompanhamentoPedidoForm(request.POST or None)
-    pedido = None
-
-    if request.method == 'POST' and form.is_valid():
-        pedido = (
-            Pedido.objects.prefetch_related('itens')
-            .filter(
-                pk=form.cleaned_data['numero_pedido'],
-                email_cliente__iexact=form.cleaned_data['email_cliente'],
-            )
-            .first()
+    cliente = getattr(request.user, 'cliente', None)
+    pedidos = Pedido.objects.none()
+    if cliente is not None:
+        pedidos = (
+            cliente.pedidos
+            .prefetch_related('itens')
+            .exclude(status__in=[
+                Pedido.Status.ENTREGUE,
+                Pedido.Status.CANCELADO,
+            ])
         )
-        if pedido is None:
-            form.add_error(
-                None,
-                'Não foi possível localizar um pedido com esses dados.',
-            )
 
     return render(request, 'pedidos/acompanhamento.html', {
-        'form': form,
-        'pedido': pedido,
+        'pedidos': pedidos,
         'etapas_status': [
             Pedido.Status.PENDENTE,
             Pedido.Status.CONFIRMADO,

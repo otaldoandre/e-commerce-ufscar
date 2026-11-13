@@ -5,12 +5,26 @@ from django.test import TestCase
 from django.urls import reverse
 
 from catalogo.models import Categoria, Produto
+from clientes.models import Cliente
 
 from .models import ItemPedido, Pedido
 
 
 class FinalizacaoPedidoTests(TestCase):
     def setUp(self):
+        usuario = get_user_model().objects.create_user(
+            username='ana@example.com',
+            email='ana@example.com',
+            password='senha-segura-123',
+        )
+        Cliente.objects.create(
+            usuario=usuario,
+            nome='Ana Silva',
+            email='ana@example.com',
+            telefone='(16) 99999-9999',
+            endereco='Rua das Flores, 123',
+        )
+        self.client.force_login(usuario)
         categoria = Categoria.objects.create(nome='Livros')
         self.produto = Produto.objects.create(
             nome='Livro de exemplo',
@@ -39,7 +53,10 @@ class FinalizacaoPedidoTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Finalizar compra')
         self.assertContains(response, self.produto.nome)
-        self.assertContains(response, 'name="email_cliente"')
+        self.assertContains(response, 'name="forma_pagamento"')
+        self.assertNotContains(response, 'name="nome_cliente"')
+        self.assertNotContains(response, 'name="email_cliente"')
+        self.assertNotContains(response, 'name="endereco_entrega"')
 
     def test_finaliza_pedido_registra_itens_e_atualiza_estoque(self):
         self.colocar_no_carrinho(2)
@@ -80,14 +97,27 @@ class FinalizacaoPedidoTests(TestCase):
         self.colocar_no_carrinho()
 
         response = self.client.post(self.url, {
-            **self.dados_cliente,
-            'email_cliente': 'email-invalido',
+            'forma_pagamento': Pedido.FormaPagamento.PIX,
         })
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(Pedido.objects.exists())
-        self.produto.refresh_from_db()
-        self.assertEqual(self.produto.estoque, 4)
+        self.assertTrue(Pedido.objects.exists())
+
+    def test_dados_do_pedido_usam_o_cadastro_autenticado(self):
+        self.colocar_no_carrinho()
+
+        response = self.client.post(self.url, {
+            'forma_pagamento': Pedido.FormaPagamento.PIX,
+            'nome_cliente': 'Cliente adulterado',
+            'email_cliente': 'outro@example.com',
+            'endereco_entrega': 'Endereço adulterado',
+        })
+
+        pedido = Pedido.objects.get()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(pedido.nome_cliente, 'Ana Silva')
+        self.assertEqual(pedido.email_cliente, 'ana@example.com')
+        self.assertEqual(pedido.endereco_entrega, 'Rua das Flores, 123')
 
     def test_pagamento_com_valor_zero_nao_e_autorizado(self):
         self.colocar_no_carrinho()
@@ -112,13 +142,27 @@ class FinalizacaoPedidoTests(TestCase):
 
 class AcompanhamentoPedidoTests(TestCase):
     def setUp(self):
+        usuario = get_user_model().objects.create_user(
+            username='ana@example.com',
+            email='ana@example.com',
+            password='senha-segura-123',
+        )
+        cliente = Cliente.objects.create(
+            usuario=usuario,
+            nome='Ana Silva',
+            email='ana@example.com',
+            telefone='(16) 99999-9999',
+            endereco='Rua das Flores, 123',
+        )
         self.pedido = Pedido.objects.create(
+            cliente=cliente,
             nome_cliente='Ana Silva',
             email_cliente='ana@example.com',
             endereco_entrega='Rua das Flores, 123',
             total=Decimal('45.50'),
             status=Pedido.Status.ENVIADO,
         )
+        self.client.force_login(usuario)
         ItemPedido.objects.create(
             pedido=self.pedido,
             nome_produto='Livro de exemplo',
@@ -127,42 +171,47 @@ class AcompanhamentoPedidoTests(TestCase):
         )
         self.url = reverse('pedidos:acompanhar')
 
-    def test_exibe_formulario_de_acompanhamento(self):
+    def test_exibe_pedidos_em_andamento_do_cliente_logado(self):
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Acompanhar pedido')
-        self.assertContains(response, 'numero_pedido')
-
-    def test_consulta_pedido_com_numero_e_email_corretos(self):
-        response = self.client.post(self.url, {
-            'numero_pedido': self.pedido.pk,
-            'email_cliente': 'ANA@example.com',
-        })
-
-        self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Enviado')
         self.assertContains(response, 'Livro de exemplo')
         self.assertContains(response, 'status atual')
 
-    def test_nao_exibe_pedido_quando_email_nao_corresponde(self):
-        response = self.client.post(self.url, {
-            'numero_pedido': self.pedido.pk,
-            'email_cliente': 'outra@example.com',
-        })
+    def test_nao_exibe_pedidos_entregues_ou_cancelados(self):
+        Pedido.objects.create(
+            cliente=self.pedido.cliente,
+            nome_cliente='Ana Silva',
+            email_cliente='ana@example.com',
+            endereco_entrega='Rua das Flores, 123',
+            total=Decimal('20.00'),
+            status=Pedido.Status.ENTREGUE,
+        )
+        Pedido.objects.create(
+            cliente=self.pedido.cliente,
+            nome_cliente='Ana Silva',
+            email_cliente='ana@example.com',
+            endereco_entrega='Rua das Flores, 123',
+            total=Decimal('20.00'),
+            status=Pedido.Status.CANCELADO,
+        )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Não foi possível localizar um pedido')
-        self.assertNotContains(response, 'Livro de exemplo')
+        response = self.client.get(self.url)
 
-    def test_nao_aceita_numero_de_pedido_invalido(self):
-        response = self.client.post(self.url, {
-            'numero_pedido': 0,
-            'email_cliente': 'ana@example.com',
-        })
+        self.assertContains(response, f'Pedido #{self.pedido.pk}')
+        self.assertEqual(response.content.decode().count('Pedido #'), 1)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'Livro de exemplo')
+    def test_acompanhamento_exige_login(self):
+        self.client.logout()
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            f'{reverse("clientes:login")}?next={self.url}',
+        )
 
     def test_administrador_pode_atualizar_status_do_pedido(self):
         usuario = get_user_model().objects.create_superuser(

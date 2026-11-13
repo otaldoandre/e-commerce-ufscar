@@ -1,0 +1,14 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Entrar</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {{ form.non_field_errors }}
+        <button type="submit">Entrar</button>
+        <a class="button secondary" href="{% url 'clientes:cadastro' %}">Criar cadastro</a>
+    </form>
+</div>
+{% endblock %}

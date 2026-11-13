@@ -18,6 +18,12 @@
     </tbody>
 </table>
 <p><strong>Total: R$ {{ total|floatformat:2 }}</strong></p>
+<div class="form-card">
+    <h2>Dados da entrega</h2>
+    <p><strong>Cliente:</strong> {{ request.user.cliente.nome }}</p>
+    <p><strong>E-mail:</strong> {{ request.user.cliente.email }}</p>
+    <p><strong>Endereço:</strong> {{ request.user.cliente.endereco }}</p>
+</div>
 <form method="post" class="form-card">
     {% csrf_token %}
     {% for field in form %}

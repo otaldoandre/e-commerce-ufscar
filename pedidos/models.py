@@ -43,6 +43,14 @@ class Pedido(models.Model):
         choices=StatusPagamento.choices,
         default=StatusPagamento.NAO_PROCESSADO,
     )
+    cliente = models.ForeignKey(
+        'clientes.Cliente',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pedidos',
+        verbose_name='cliente cadastrado',
+    )
     criado_em = models.DateTimeField('criado em', auto_now_add=True)
 
     class Meta:

@@ -1,0 +1,14 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Cadastro de cliente{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Cadastro de cliente</h1>
+    <p>Preencha seus dados para criar um cadastro.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Cadastrar</button>
+        <a class="button secondary" href="{% url 'catalogo:produto_lista' %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

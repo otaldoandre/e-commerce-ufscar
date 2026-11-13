@@ -50,9 +50,31 @@ aprova pagamentos com valor maior que zero; ela não se conecta a um provedor,
 não cobra o cliente nem solicita ou armazena dados de cartão. O pedido fica com
 status **Confirmado** após a autorização simulada.
 
-O cliente pode acompanhar o pedido informando seu número e o e-mail usado na
-compra. A equipe pode atualizar o status (Pendente, Confirmado, Enviado,
-Entregue ou Cancelado) pela lista de pedidos do Django Admin (`/admin/`).
+O cliente autenticado pode acompanhar automaticamente todos os seus pedidos em
+andamento. Pedidos entregues ou cancelados deixam de aparecer nessa tela. A
+equipe pode atualizar o status (Pendente, Confirmado, Enviado, Entregue ou
+Cancelado) pela lista de pedidos do Django Admin (`/admin/`).
+
+## Cadastro de clientes
+
+O cadastro de cliente está disponível em `/clientes/cadastro/` e solicita nome,
+e-mail, senha, telefone e endereço. O e-mail é único e os cadastros também
+podem ser consultados pela área administrativa. O cliente entra pelo endereço
+`/clientes/login/`; depois de autenticado, o histórico fica disponível em
+`/clientes/historico/`. Pedidos feitos durante uma compra autenticada ficam
+associados ao cliente.
+Cada R$ 1,00 em uma compra autorizada gera um ponto de fidelidade; a cada 100
+pontos, o cliente fica elegível a R$ 10,00 de desconto conforme a regra do
+projeto.
+
+Na finalização da compra, os dados do cliente autenticado são preenchidos
+automaticamente. A tela solicita apenas a forma de pagamento; não é necessário
+informar novamente nome, e-mail ou endereço.
+
+Usuários normais podem comprar, consultar o próprio histórico e acompanhar
+pedidos. Apenas usuários administrativos (`is_staff`) podem cadastrar, editar
+ou remover produtos e categorias. Crie o primeiro administrador com
+`python manage.py createsuperuser`.
 
 ## Imagens dos produtos
 
