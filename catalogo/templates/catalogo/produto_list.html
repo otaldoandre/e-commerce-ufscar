@@ -18,27 +18,51 @@
     <a class="button secondary" href="{% url 'catalogo:produto_lista' %}">Limpar</a>
 </form>
 {% if produtos %}
-<table>
-    <thead>    <tr><th>Imagem</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Ações</th></tr></thead>
-    <tbody>{% for produto in produtos %}
-        <tr>
-            <td>{% if produto.imagem %}<img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}" width="80" height="80" style="object-fit: cover;">{% else %}Sem imagem{% endif %}</td>
-            <td><strong>{{ produto.nome }}</strong><br>{{ produto.descricao|truncatewords:12 }}</td>
-            <td>{{ produto.categoria.nome }}</td>
-            <td>R$ {{ produto.preco|floatformat:2 }}</td>
-            <td>{{ produto.estoque }}{% if not produto.ativo %} (inativo){% endif %}</td>
-            <td><a class="button" href="{% url 'catalogo:produto_editar' produto.pk %}">Editar</a>
+<div class="product-grid">
+    {% for produto in produtos %}
+    <article class="product-card">
+        <div class="product-image">
+            {% if produto.imagem %}
+                <img src="{{ produto.imagem.url }}" alt="{{ produto.nome }}">
+            {% else %}
+                <span>Sem imagem</span>
+            {% endif %}
+        </div>
+        <div class="product-body">
+            <span class="category-chip">{{ produto.categoria.nome }}</span>
+            <h3>{{ produto.nome }}</h3>
+            <p class="product-description">{{ produto.descricao|truncatewords:12 }}</p>
+            <p class="price">R$ {{ produto.preco|floatformat:2 }}</p>
+            {% if not produto.ativo %}
+                <span class="badge badge-warning">Inativo</span>
+            {% elif produto.estoque > 0 %}
+                <span class="badge badge-success">Disponível</span>
+            {% else %}
+                <span class="badge badge-danger">Esgotado</span>
+            {% endif %}
+            {% if user.is_staff %}
+            <div class="product-admin-actions">
+                <a class="button secondary" href="{% url 'catalogo:produto_editar' produto.pk %}">Editar</a>
                 <a class="button danger" href="{% url 'catalogo:produto_remover' produto.pk %}">Remover</a>
-                {% if produto.ativo and produto.estoque > 0 %}
-                <form method="post" action="{% url 'carrinho:adicionar' produto.pk %}" style="display: inline;">
+            </div>
+            {% endif %}
+            {% if produto.ativo and produto.estoque > 0 %}
+                <form method="post" action="{% url 'carrinho:adicionar' produto.pk %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button type="submit">Adicionar ao carrinho</button>
                 </form>
-                {% else %}<span class="warning">Indisponível</span>{% endif %}</td>
-        </tr>
-    {% endfor %}</tbody>
-</table>
+            {% endif %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
 {% else %}<div class="empty">Nenhum produto encontrado.</div>{% endif %}
-{% if is_paginated %}<p>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</p>{% endif %}
+{% if is_paginated %}
+<nav class="pagination" aria-label="Paginação">
+    {% if page_obj.has_previous %}<a class="button secondary" href="?page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="button" href="?page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+</nav>
+{% endif %}
 {% endblock %}

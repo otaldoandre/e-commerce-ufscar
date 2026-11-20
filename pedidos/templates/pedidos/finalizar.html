@@ -2,22 +2,15 @@
 {% block title %}Finalizar compra{% endblock %}
 {% block content %}
 <h1>Finalizar compra</h1>
-<h2>Resumo do pedido</h2>
-<table>
-    <thead><tr><th>Produto</th><th>Quantidade</th><th>Subtotal</th></tr></thead>
-    <tbody>
+<div class="checkout-layout">
+<aside class="order-summary checkout-summary">
+    <h2>Resumo do pedido</h2>
     {% for item in itens %}
-        <tr>
-            <td>{{ item.produto.nome }}</td>
-            <td>{{ item.quantidade }}</td>
-            <td>R$ {{ item.subtotal|floatformat:2 }}</td>
-        </tr>
-    {% empty %}
-        <tr><td colspan="3">Revise seu carrinho antes de finalizar.</td></tr>
-    {% endfor %}
-    </tbody>
-</table>
-<p><strong>Total: R$ {{ total|floatformat:2 }}</strong></p>
+    <div class="checkout-item"><span>{{ item.quantidade }} × {{ item.produto.nome }}</span><strong>R$ {{ item.subtotal|floatformat:2 }}</strong></div>
+    {% empty %}<p>Revise seu carrinho antes de finalizar.</p>{% endfor %}
+    <p class="summary-total"><span>Total</span><strong>R$ {{ total|floatformat:2 }}</strong></p>
+</aside>
+<div class="checkout-details">
 <div class="form-card">
     <h2>Dados da entrega</h2>
     <p><strong>Cliente:</strong> {{ request.user.cliente.nome }}</p>
@@ -38,4 +31,6 @@
         <button type="submit">Confirmar pedido</button>
     <a class="button secondary" href="{% url 'carrinho:detalhe' %}">Voltar ao carrinho</a>
 </form>
+</div>
+</div>
 {% endblock %}
