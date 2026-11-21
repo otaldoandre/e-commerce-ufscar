@@ -38,6 +38,13 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 #ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# Na Vercel (a variável VERCEL=1 é definida automaticamente), aceita os domínios
+# *.vercel.app (produção e previews) e confia no HTTPS terminado no proxy.
+if os.getenv("VERCEL"):
+    ALLOWED_HOSTS += [".vercel.app"]
+    CSRF_TRUSTED_ORIGINS = ["https://*.vercel.app"]
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 # Application definition
 
@@ -56,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -152,6 +160,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Serve os arquivos de STATICFILES_DIRS direto, sem exigir collectstatic no build
+# (útil na Vercel, onde não há etapa de build para o Django).
+WHITENOISE_USE_FINDERS = True
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
